@@ -1,0 +1,41 @@
+{
+  "name": "watsonworkspace-bot",
+  "version": "0.0.1",
+  "description": "An unofficial IBM Watson Workspace bot kit",
+  "scripts": {
+    "start": "node index.js",
+    "test": "jasmine",
+    "dev": "concurrently \"node ngrok.js\" \"nodemon ./index.js\""
+  },
+  "keywords": [
+    "watsonworkspace",
+    "ibm",
+    "workspace"
+  ],
+  "repository" : {
+    "type" : "git",
+    "url" : "https://github.com/van-ibm/watsonworkspace-bot.git"
+  },
+  "author": "van_staub@us.ibm.com",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "body-parser": "1.14.x",
+    "dotenv": "^4.0.0",
+    "express": "4.13.x",
+    "jsonwebtoken": "^7.1.9",
+    "method-override": "^2.3.6",
+    "qs": "^6.3.0",
+    "request": "^2.76.0",
+    "winston": "^2.4.0"
+  },
+  "repository": {},
+  "engines": {
+    "node": "4.x"
+  },
+  "devDependencies": {
+    "concurrently": "^3.5.0",
+    "jasmine": "^2.8.0",
+    "ngrok": "^2.2.23",
+    "nodemon": "^1.12.1"
+  }
+}
