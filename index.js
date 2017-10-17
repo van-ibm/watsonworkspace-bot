@@ -44,9 +44,9 @@ app.use(webhook)
 module.exports.start = () => {
   http.createServer(app).listen(app.get('port'), '0.0.0.0', () => {
     logger.info(botName + ' bot listening on ' + app.get('port'))
-    ww.authenticate(appId, appSecret, (token) => {
-      module.exports.emit('authenticated', token)
-    })
+    ww.authenticate(appId, appSecret)
+    .then(token => module.exports.emit('authenticated', token))
+    .catch(error => logger.error(error))
   })
 }
 
