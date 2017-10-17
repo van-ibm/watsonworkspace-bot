@@ -12,10 +12,7 @@
     "ibm",
     "workspace"
   ],
-  "repository" : {
-    "type" : "git",
-    "url" : "https://github.com/van-ibm/watsonworkspace-bot.git"
-  },
+  "repository": {},
   "author": "van_staub@us.ibm.com",
   "license": "Apache-2.0",
   "dependencies": {
@@ -26,9 +23,9 @@
     "method-override": "^2.3.6",
     "qs": "^6.3.0",
     "request": "^2.76.0",
+    "watsonworkspace-sdk": "^0.0.1",
     "winston": "^2.4.0"
   },
-  "repository": {},
   "engines": {
     "node": "4.x"
   },
