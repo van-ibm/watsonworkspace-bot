@@ -46,7 +46,7 @@ module.exports.start = () => {
     logger.info(botName + ' bot listening on ' + app.get('port'))
     ww.authenticate(appId, appSecret)
     .then(token => module.exports.emit('authenticated', token))
-    .catch(error => logger.error(error))
+    .catch(error => logger.error(error.message))
   })
 }
 
