@@ -5,7 +5,7 @@ This project is a framework for chatbot development on Watson Workspace. It is w
 Developers can contribute chatbot behavior by simply listening to and respond to specific Workspace events.
 
 ```javascript
-bot.webhooks.on('message-focus:ActionRequest:Schedule', (body, annotation) => {
+bot.on('message-focus:ActionRequest:Schedule', (body, annotation) => {
   logger.info(`Checking calendars based on scheduling event phrase '${annotation.phrase}'`)
 })
 ```
@@ -14,28 +14,31 @@ Chatbot setup and event listening (webhooks) are handled by the bot framework. D
 
 The following are a few combinations.
 ```javascript
-bot.webhooks.on('message-created', (message) => ...
-bot.webhooks.on('message-annotation-added', (message, annotation) => ...
-bot.webhooks.on('message-focus', (message, annotation) => ...
-bot.webhooks.on('message-focus:ActionRequest', (message, annotation) => ...
-bot.webhooks.on('message-focus:ActionRequest:Schedule', (message, annotation) => ...
-bot.webhooks.on('message-focus:Question', (message, annotation) => ...
-bot.webhooks.on('message-focus:Commitment', (message, annotation) => ...
-bot.webhooks.on('actionSelected', (message, annotation) => ...
-bot.webhooks.on('actionSelected:someActionId', (message, annotation) => ...
+bot.on('message-created', (message) => ...
+bot.on('message-annotation-added', (message, annotation) => ...
+bot.on('message-focus', (message, annotation) => ...
+bot.on('message-focus:ActionRequest', (message, annotation) => ...
+bot.on('message-focus:ActionRequest:Schedule', (message, annotation) => ...
+bot.on('message-focus:Question', (message, annotation) => ...
+bot.on('message-focus:Commitment', (message, annotation) => ...
+bot.on('actionSelected', (message, annotation) => ...
+bot.on('actionSelected:someActionId', (message, annotation) => ...
 ```
 
 To build your bot, create a separate project. Then add the necessary require statements and begin listening to events to add your own behavior.
 
 ```javascript
-const bot = require('watsonworkspace-bot')
-const ww = require('watsonworkspace-sdk')
+// creates a bot server with a single bot
+const botFramework = require('watsonworkspace-bot')
+botFramework.level('debug')
+botFramework.startServer()
 
-bot.webhooks.on('message-annotation-added', (message, annotation) => {
+const bot = botFramework.create() // bot settings defined by process.env
+bot.authenticate()
+
+bot.on('message-annotation-added', (message, annotation) => {
   // do something awesome using watsonworkspace-sdk
 })
-
-bot.start()
 ```
 
 ## Local Development
@@ -63,7 +66,7 @@ Watson Workspace uses webhooks as an event-driven means to exchange information 
 Simply execute the `npm run-script dev` command. This will programmatically create a connection to a public domain using ngrok. A message will appear that indicates the URL you should use in your webhook.
 
 ```
-Use 'https://cdf9d82f.ngrok.io' as your webhook URL in Watson Workspace
+Use 'https://cdf9d82f.ngrok.io/a7cfbdac-cdab-3d6f-ae13-0654b6b8e880' as your webhook URL in Watson Workspace
 ```
 
 ### winston
