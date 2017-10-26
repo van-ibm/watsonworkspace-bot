@@ -1,53 +1,85 @@
-const botName = process.env.BOT_NAME || 'workspace-bot'
-const EventEmitter = require('events').EventEmitter
-const logger = require('winston')
-const webhooks = require('./webhooks')
-const ww = require('watsonworkspace-sdk')
+'use strict'
 
-module.exports = new EventEmitter()
-module.exports.webhooks = webhooks
+require('dotenv').config()
 
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config()
-  logger.level = 'verbose'
+const Bot = require('./bot')
+const botRegistry = {
+  // bots added via create()
 }
+const SDK = require('watsonworkspace-sdk')
 
-// watson work configuration use Bluemix user vars or edit .env file
-// these are provided when you register your appliction
-var webhookSecret = process.env.WEBHOOK_SECRET
-var appId = process.env.APP_ID
-var appSecret = process.env.APP_SECRET
-
-// dependencies
-var express = require('express')
-var http = require('http')
-var crypto = require('crypto')
-var bodyParser = require('body-parser')
-var methodOverride = require('method-override')
+const bodyParser = require('body-parser')
+const crypto = require('crypto')
+const express = require('express')
+const http = require('http')
+const logger = require('winston')
+const methodOverride = require('method-override')
 
 // set up express
 var app = express()
 
-// all environments
-app.set('port', process.env.PORT || 3000)
-app.use(bodyParser.urlencoded({
-  extended: false
-}))
-app.use(bodyParser.json({limit: '5mb'}))
-app.use(methodOverride())
+module.exports = (express) => {
+  app = express
+}
 
-// watson work services middleware
-app.use(verifier)
-app.use(ignorer)
-app.use(webhook)
+module.exports.create = (appId, appSecret, webhookSecret) => {
+  // if undefined, assume the bot's info is in the runtime properties
+  if (appId === undefined) {
+    appId = process.env.APP_ID
+    appSecret = process.env.APP_SECRET
+    webhookSecret = process.env.WEBHOOK_SECRET
+  }
 
-module.exports.start = () => {
+  // the path will be the bot's appId; used to later emit events to bot
+  const path = `/${appId}`
+
+  logger.info(`Creating bot '${appId}' on path '${path}'`)
+
+  // standard middleware needed to handle JSON resonses from work services
+  app.use(path, bodyParser.urlencoded({
+    extended: false
+  }))
+  app.use(path, bodyParser.json({limit: '5mb'}))
+  app.use(path, methodOverride())
+
+  // watson work services specifc middleware
+  app.use(path, verifier)
+  app.use(path, ignorer)
+  app.use(path, webhook)
+
+  // create the bot
+  const botInstance = new Bot(appId, appSecret, webhookSecret)
+
+  // add the bot to the registry
+  botRegistry[appId] = botInstance
+
+  return botInstance
+}
+
+module.exports.level = level => {
+  logger.level = level
+  SDK.level(level) // TODO make this into a per bot logger not global
+}
+
+module.exports.startServer = () => {
+  app.set('port', process.env.PORT || 3000)
   http.createServer(app).listen(app.get('port'), '0.0.0.0', () => {
-    logger.info(botName + ' bot listening on ' + app.get('port'))
-    ww.authenticate(appId, appSecret)
-    .then(token => module.exports.emit('authenticated', token))
-    .catch(error => logger.error(error.message))
+    logger.info(`watsonworkspace-bot framework listening on port '${app.get('port')}'`)
   })
+}
+
+function getBotId (req) {
+  // the baseUrl is /81279d4c-99a9-4326-8193-7e86787cfd8c
+  return req.baseUrl.substring(1)
+}
+
+function getBot (req) {
+  const botAppId = getBotId(req)
+
+  if (botRegistry[botAppId] === undefined) {
+    logger.error(`Failed to retrieve bot with ID '${botAppId}'`)
+  }
+  return botRegistry[botAppId]
 }
 
 /**
@@ -57,16 +89,20 @@ function verifier (req, res, next) {
   if (req.body.type === 'verification') {
     logger.verbose('Received webhook verification challenge ' + req.body.challenge)
 
-    var bodyToSend = {
+    const bot = getBot(req)
+
+    const bodyToSend = {
       response: req.body.challenge
     }
 
-    var hashToSend = crypto.createHmac('sha256', webhookSecret)
+    const hashToSend = crypto.createHmac('sha256', bot.webhookSecret)
         .update(JSON.stringify(bodyToSend))
         .digest('hex')
 
     res.set('X-OUTBOUND-TOKEN', hashToSend)
     res.send(bodyToSend)
+
+    bot.emitVerify()
   } else {
     next()
   }
@@ -76,11 +112,12 @@ function verifier (req, res, next) {
  * Middleware function to ignore messages from this bot
  */
 function ignorer (req, res, next) {
-  // Ignore our own messages
-  if (req.body.userId === appId) {
+  const botAppId = getBotId(req)
+
+  // Ignore the bot's own messages
+  if (req.body.userId === botAppId) {
     res.status(201).send().end()
   } else {
-    // console.log('Sending body to next middleware ' + JSON.stringify(req.body))
     next()
   }
 }
@@ -125,12 +162,14 @@ function webhook (req, res, next) {
 
     // only handle messages that this bot has not seen before
     // if (!marked(body.messageId)) {
-    webhooks.emitWebhook(body)
+
+    // look up the bot in the registry
+    const bot = getBot(req)
+    bot.emitWebhook(body)
       // }
   }
 
-  // you can acknowledge here or later
-  // but you MUST respond or watson work will keep sending the message
+  // respond or watson work will keep sending the message
   res.status(200).send().end()
   next()
 }

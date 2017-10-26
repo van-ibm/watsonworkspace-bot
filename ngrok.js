@@ -1,15 +1,22 @@
 require('dotenv').config()
 
 const ngrok = require('ngrok')
-
-ngrok.connect({
+const config = {
   proto: 'http',
   addr: process.env.PORT,
   region: 'us'
-}, (err, url) => {
+}
+
+// subdomains are a paid service of ngrok
+if (process.env.SUBDOMAIN && process.env.AUTHTOKEN) {
+  config.subdomain = process.env.SUBDOMAIN
+  config.authtoken = process.env.AUTHTOKEN
+}
+
+ngrok.connect(config, (err, url) => {
   if (err) {
     console.log(`Error creating ngrok ${err}`)
   } else {
-    console.log(`Use '${url}' as your webhook URL in Watson Workspace`)
+    console.log(`Use '${url}/${process.env.APP_ID}' as your webhook URL in Watson Workspace`)
   }
 })

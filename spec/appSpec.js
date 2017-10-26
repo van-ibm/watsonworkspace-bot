@@ -1,34 +1,61 @@
-describe('workspace-bot', function () {
+describe('workspace-bot', () => {
   // set a much longer timeout to allow interaction with Workspace UI
-  // or long running webhook events
   jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000
 
-  const spaceId = '57cf270ee4b06c8b753629e6'
+  // space/conversation ID for testing; ensure you've added the app to a space
+  const spaceId = process.env.SPEC_SPACE_ID
 
-  const bot = require('../index')
-  const webhooks = bot.webhooks
-  const ww = require('watsonworkspace-sdk')
+  const botFramework = require('../index')
+  botFramework.level(process.env.SPEC_LOGGER_LEVEL)
 
+  // a bot where the expectation is that runtime vars define a single bot
+  const defaultBot = botFramework.create()
 
-  // open the localtunnel to allow webhook tests
-  require('../localtunnel')
+  // a bot where the user or program explictly creates a bot
+  const bot = botFramework.create(
+    process.env.APP_ID,
+    process.env.APP_SECRET,
+    process.env.WEBHOOK_SECRET
+  )
 
-  it('start', function (done) {
-    // listen for the token event to signal the app is ready to use
-    bot.on('authenticated', (token) => {
+  it('precheck', () => {
+    expect(defaultBot).not.toBe(null)
+    expect(bot).not.toBe(null)
+  })
+
+  it('default-authenticate', done => {
+    defaultBot.authenticate()
+    .then(token => done())
+    .catch(error => console.log(error))
+  })
+
+  it('specified-authenticate', done => {
+    bot.authenticate()
+    .then(token => done())
+    .catch(error => console.log(error))
+  })
+
+  it('startServer', done => {
+    // this spec expects the developer to enable the webhook to proceed
+    console.log(`Re-enable the webhook at 'https://developer.watsonwork.ibm.com/apps/dashboard/webhooks'`)
+
+    bot.on('verify', () => {
+      console.log(`Webhook verified`)
       done()
     })
 
-    // start the app to begin setting up the server and webhooks
-    bot.start()
+    botFramework.startServer()
   })
 
-  it('webhook-message-created', function (done) {
-    ww.sendMessage(spaceId, 'Type any message into Workspace')
+  it('webhook-message-created', done => {
+    bot.sendMessage(spaceId, 'Type any message into Workspace')
 
-    webhooks.on('message-created', message => {
+    // receives the message the user types
+    bot.on('message-created', message => {
       expect(message).not.toBe(null)
-      done()
+
+      bot.sendMessage(spaceId, `Received '${message.content}'`)
+      .finally(messge => done())
     })
   })
 })
