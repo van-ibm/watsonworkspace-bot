@@ -52,7 +52,18 @@ module.exports = class Bot extends SDK {
 
     // 'actionSelected:sample_button'
     if (annotationPayload.actionId) {
-      this.emit(`${annotationType}:${annotationPayload.actionId}`, message, annotationPayload)
+      // convert the string payload to an object if present
+      if (annotationPayload.payload) {
+        annotationPayload.payload = JSON.parse(annotationPayload.payload)
+      }
+
+      // slash commands are the actionId; for example /todos
+      if (annotationPayload.actionId.charAt(0) === '/') {
+        const command = annotationPayload.actionId.split(' ')
+        this.emit(`${annotationType}:${command[0]}`, message, annotationPayload, command.slice(1))
+      } else {
+        this.emit(`${annotationType}:${annotationPayload.actionId}`, message, annotationPayload)
+      }
     }
   }
 

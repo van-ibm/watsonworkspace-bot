@@ -25,6 +25,12 @@ bot.on('actionSelected', (message, annotation) => ...
 bot.on('actionSelected:someActionId', (message, annotation) => ...
 ```
 
+Slash commands are also handled by the event emitter. The params argument is an array of parameters sent to the slash command by the user.
+```javascript
+bot.on(`actionSelected:/mycommand`, (message, annotation, params) => ...
+```
+
+
 To build your bot, create a separate project. Then add the necessary require statements and begin listening to events to add your own behavior.
 
 ```javascript
