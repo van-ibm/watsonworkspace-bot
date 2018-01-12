@@ -12,11 +12,18 @@ const bodyParser = require('body-parser')
 const crypto = require('crypto')
 const express = require('express')
 const http = require('http')
+const https = require('https')
 const logger = require('winston')
 const methodOverride = require('method-override')
+const nonce = require('nonce')()
+const oauth2 = require('simple-oauth2')
 
 // set up express
 var app = express()
+const hostname = process.env.hostname || 'localhost'
+const port = process.env.port || 3000
+
+// app.use('/config/:appId', configurer)
 
 module.exports = (express) => {
   app = express
@@ -46,12 +53,18 @@ module.exports.create = (appId, appSecret, webhookSecret) => {
   app.use(path, verifier)
   app.use(path, ignorer)
   app.use(path, webhook)
+  app.use(`${path}/oauth`, oauth)
+  app.use(`${path}/callback`, oauthCallback)
+  app.use(path, end)  // should always be last
 
   // create the bot
   const botInstance = new Bot(appId, appSecret, webhookSecret)
 
   // add the bot to the registry
   botRegistry[appId] = botInstance
+
+  // create the oauth client for the bot
+  botInstance.oauth = oauthClient(botInstance)
 
   return botInstance
 }
@@ -61,16 +74,19 @@ module.exports.level = level => {
   SDK.level(level) // TODO make this into a per bot logger not global
 }
 
-module.exports.startServer = () => {
-  app.set('port', process.env.PORT || 3000)
-  http.createServer(app).listen(app.get('port'), '0.0.0.0', () => {
-    logger.info(`watsonworkspace-bot framework listening on port '${app.get('port')}'`)
+module.exports.startServer = (options) => {
+  const ssl = options && options.key && options.cert
+  const server = ssl ? https.createServer(options, app) : http.createServer(app)
+
+  server.listen(port, hostname, () => {
+    logger.info(`watsonworkspace-bot framework listening on port ${port} using ssl ${ssl !== undefined}`)
   })
 }
 
 function getBotId (req) {
-  // the baseUrl is /81279d4c-99a9-4326-8193-7e86787cfd8c
-  return req.baseUrl.substring(1)
+  // the baseUrl is /81279d4c-99a9-4326-8193-7e86787cfd8c/oauth
+  // get just the appId
+  return req.baseUrl.substring(1, 37)
 }
 
 function getBot (req) {
@@ -80,6 +96,105 @@ function getBot (req) {
     logger.error(`Failed to retrieve bot with ID '${botAppId}'`)
   }
   return botRegistry[botAppId]
+}
+
+/**
+ * Middleware function to handle Configuration URL parameters
+ */
+function configurer (req, res) {
+  const appId = req.params.appId
+  const bot = botRegistry[appId]
+
+  if (appId && bot) {
+    const token = req.query.configurationToken
+
+    logger.verbose(`Received configuration for appId ${appId} with configurationToken ${token}`)
+
+    bot.getConfigurationData(token)
+    .then(body => {
+      logger.verbose(body)
+      res.send(`Valid configurationToken`)
+    })
+    .catch(body => {
+      res.send(`Invalid configurationToken`)
+      logger.error(body)
+    })
+    // req.spaceId
+    // req.userId
+  } else {
+    res.send(`Invalid appId ${appId}`)
+  }
+}
+
+function end (req, res) {
+  // respond or watson work will keep sending the message
+  res.status(200).send().end()
+}
+
+/**
+ * Middleware function to handle OAuth invocation
+ */
+function oauth (req, res) {
+  const bot = getBot(req)
+
+  const authorizationUri = bot.oauth.authorizationCode.authorizeURL({
+    redirect_uri: `https://${hostname}:${port}/${bot.appId}/callback`,
+    state: nonce()
+  })
+
+  logger.verbose(`Redirecting to ${authorizationUri}`)
+
+  res.redirect(authorizationUri)
+}
+
+/**
+ * Middleware function to handle OAuth callback
+ */
+function oauthCallback (req, res) {
+  const bot = getBot(req)
+
+  const tokenConfig = {
+    code: req.query.code,
+    redirect_uri: `https://${hostname}:${port}/${bot.appId}/callback`
+  }
+
+  bot.oauth.authorizationCode.getToken(tokenConfig,
+    (error, result) => {
+      if (error) {
+        logger.error(`Error with OAuth callback ${error.message}`)
+        res.send(error.message).end()
+      } else {
+        const accessToken = bot.oauth.accessToken.create(result)
+
+        logger.verbose(`Adding ${accessToken.token.displayName} to ${bot.appId} user registry`)
+        bot.addUser(accessToken.token.id, accessToken.token.access_token)
+
+        // TODO Need to handle refresh of tokens
+
+        res.send(`
+          <p>${accessToken.token.displayName}</p>
+          <p>${accessToken.token.id}</p>
+          <p>Valid until ${accessToken.token.expires_at}</p>
+          <p>${accessToken.token.access_token}</p>
+          <p>${accessToken.token.scope}</p>
+        `).end()
+      }
+    })
+}
+
+/**
+ * Creates the OAuth client to retrieve a user's token
+ */
+function oauthClient (bot) {
+  return oauth2.create({
+    client: {
+      id: bot.appId,
+      secret: bot.appSecret
+    },
+    auth: {
+      tokenHost: 'https://api.watsonwork.ibm.com'
+    }
+  })
 }
 
 /**
@@ -169,7 +284,5 @@ function webhook (req, res, next) {
       // }
   }
 
-  // respond or watson work will keep sending the message
-  res.status(200).send().end()
   next()
 }

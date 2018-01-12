@@ -3,10 +3,23 @@
 const logger = require('winston')
 const SDK = require('watsonworkspace-sdk')
 
+const userRegistry = {
+  // contains userId: SDK instances
+}
+
 module.exports = class Bot extends SDK {
   constructor (appId, appSecret, webhookSecret) {
     super(appId, appSecret)
     this._webhookSecret = webhookSecret
+  }
+
+  addUser (userId, token) {
+    // no authentications because we already have a valid token
+    userRegistry[userId] = new SDK('', '', token)
+  }
+
+  asUser (userId) {
+    return userRegistry[userId]
   }
 
   emitVerify () {
