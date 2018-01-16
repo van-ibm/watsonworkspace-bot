@@ -47,6 +47,33 @@ bot.on('message-annotation-added', (message, annotation) => {
 })
 ```
 
+## Bot Paths
+The Bot Framework runs on [Express](http://expressjs.com). By creating a bot, several paths will be mounted on Express to handle webhooks and OAuth.
+
+The bot's root path is `/<appId>` where `appId` corresponds to your application's ID you received upon registration with Watson Work Services. For example, https://myapp.mybluemix.net`/1023c56a-6751-4f70-8331-ad1cfc5ee800`. This is also the path that is used for webhooks in the *Listen to Events* page on [Watson Work Services](https://developer.watsonwork.ibm.com/apps).
+
+Two mounts are provided for OAuth: `/<appId>/oauth` and `/<appId>/callback`. These respectively handle triggering the OAuth flow and the resulting callback from Watson Work Services. To utilize OAuth, you must update the *Run as a User* page from your app on [Watson Work Services](https://developer.watsonwork.ibm.com/apps) page. An example *OAuth2 redirect URI* is `https://myapp.mybluemix.net/1023c56a-6751-4f70-8331-ad1cfc5ee800/callback`. To trigger the OAuth flow, redirect the user's browser to `https://myapp.mybluemix.net/1023c56a-6751-4f70-8331-ad1cfc5ee800/oauth`.
+
+## HTTPS
+To utilize OAuth during local development, you must start the Bot Framework using HTTPS.
+
+```javascript
+const fs = require('fs')
+
+botFramework.startServer({
+  key: fs.readFileSync('key.pem'),
+  cert: fs.readFileSync('cert.pem')
+})
+```
+
+The key and cert files are created using OpenSSL for example.
+
+```
+openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out cert.pem
+```
+
+On a production server such as Bluemix (IBM Cloud), you can simply use the `botFramework.startServer()` function.  HTTPS will be handled by the web layer of Bluemix.
+
 ## Local Development
 ### nodemon
 
@@ -61,6 +88,7 @@ APP_ID=<your appId>
 APP_SECRET=<your appSecret>
 WEBHOOK_SECRET=<your webhookSecret>
 BOT_NAME=<your botName>
+PORT=<non-conflicting port>
 ```
 
 Later when using Bluemix or similar PaaS solutions, you can edit the runtime variables to create the same property-value pairs.
