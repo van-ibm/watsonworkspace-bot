@@ -54,6 +54,15 @@ The bot's root path is `/<appId>` where `appId` corresponds to your application'
 
 Two mounts are provided for OAuth: `/<appId>/oauth` and `/<appId>/callback`. These respectively handle triggering the OAuth flow and the resulting callback from Watson Work Services. To utilize OAuth, you must update the *Run as a User* page from your app on [Watson Work Services](https://developer.watsonwork.ibm.com/apps) page. An example *OAuth2 redirect URI* is `https://myapp.mybluemix.net/1023c56a-6751-4f70-8331-ad1cfc5ee800/callback`. To trigger the OAuth flow, redirect the user's browser to `https://myapp.mybluemix.net/1023c56a-6751-4f70-8331-ad1cfc5ee800/oauth`.
 
+## Acting on Behalf of a User
+After the OAuth flow, the bot will be presented with an access token for the user. This token will be stored in an in-memory registry for the bot.
+
+To use the token and act on behalf of the user, a bot can utilize the `asUser` function with standard SDK functions.
+
+```javascript
+bot.asUser('<userId>').addMember(spaceId, memberId)
+```
+
 ## HTTPS
 To utilize OAuth during local development, you must start the Bot Framework using HTTPS.
 
