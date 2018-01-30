@@ -20,7 +20,7 @@ const oauth2 = require('simple-oauth2')
 
 // set up express
 var app = express()
-const hostname = process.env.HOSTNAME || process.env.hostname || 'localhost'
+const hostname = process.env.HOSTNAME || process.env.hostname || '0.0.0.0'
 const port = process.env.PORT || process.env.port || 3000
 
 // app.use('/config/:appId', configurer)
