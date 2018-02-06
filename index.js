@@ -20,15 +20,39 @@ const oauth2 = require('simple-oauth2')
 
 // set up express
 var app = express()
+
+// IBM Cloud uses hostname and port; do not change case or Express won't bind properly
 const hostname = process.env.HOSTNAME || process.env.hostname || '0.0.0.0'
 const port = process.env.PORT || process.env.port || 3000
 
 // app.use('/config/:appId', configurer)
 
+/**
+ * Creates an Express server to host bots.
+ * @param {Application} [express] Express server is already available (e.g. Node-RED) 
+ */
 module.exports = (express) => {
   app = express
 }
 
+/**
+ * Creates and mounts a bot to the Express server.
+ * 
+ * The bot's root path is /<appId> where appId corresponds to your application's ID.
+ * For example, https://myapp.mybluemix.net`/1023c56a-6751-4f70-8331-ad1cfc5ee800`. 
+ * This is also the path that is used for webhooks in the Listen to Events page on Watson Work Services.
+ * Two mounts are provided for OAuth: /<appId>/oauth and /<appId>/callback. 
+ * These respectively handle triggering the OAuth flow and the resulting callback from Watson Work Services. 
+ * To utilize OAuth, you must update the Run as a User page from your app on Watson Work Services page. 
+ * An example OAuth2 redirect URI is https://myapp.mybluemix.net/1023c56a-6751-4f70-8331-ad1cfc5ee800/callback. 
+ * To trigger the OAuth flow, redirect the user's browser to 
+ * https://myapp.mybluemix.net/1023c56a-6751-4f70-8331-ad1cfc5ee800/oauth.
+ * 
+ * @param {string} appId The bot's app ID from Watson Work Services
+ * @param {string} appSecret The bot's app secret from Watson Work Services
+ * @param {string} webhookSecret The bot's webhook secret from Watson Work Services
+ * @returns {Bot} The bot instance
+ */
 module.exports.create = (appId, appSecret, webhookSecret) => {
   // if undefined, assume the bot's info is in the runtime properties
   if (appId === undefined) {
@@ -69,11 +93,27 @@ module.exports.create = (appId, appSecret, webhookSecret) => {
   return botInstance
 }
 
+/**
+ * Sets the logging level for the bot framework.
+ * @param {string} level Level for debug e.g. error, info, warn, verbose, debug
+ */
 module.exports.level = level => {
   logger.level = level
   SDK.level(level) // TODO make this into a per bot logger not global
 }
 
+/**
+ * Starts the Express server. By default, the server will listen on HTTP.
+ * 
+ * The hostname and port are inferred from process.env.
+ * process.env.HOSTNAME | process.env.hostname
+ * process.env.PORT | process.env.port
+ * 
+ * To use SSL for local testing of OAuth, use the options object.
+ * { key: fs.readFileSync('key.pem'), cert: fs.readFileSync('cert.pem') }
+ * 
+ * @param {Object} [options] SSL options if applicable
+ */
 module.exports.startServer = (options) => {
   const ssl = options && options.key && options.cert
   const server = ssl ? https.createServer(options, app) : http.createServer(app)
@@ -83,12 +123,22 @@ module.exports.startServer = (options) => {
   })
 }
 
+/**
+ * Gets a bot's ID from a request (inferred from the URL).
+ * @param {Request} req The HTTP request
+ * @returns {string} The bot's ID
+ */
 function getBotId (req) {
   // the baseUrl is /81279d4c-99a9-4326-8193-7e86787cfd8c/oauth
   // get just the appId
   return req.baseUrl.substring(1, 37)
 }
 
+/**
+ * Gets a Bot instance from a request (inferred from the URL).
+ * @param {Request} req The HTTP request
+ * @returns {Bot} The Bot instance
+ */
 function getBot (req) {
   const botAppId = getBotId(req)
 
@@ -126,6 +176,10 @@ function configurer (req, res) {
   }
 }
 
+/**
+ * Ends the middleware chain. You must respond 200 or Watson Work Services will keep
+ * retrying to send messages.
+ */
 function end (req, res) {
   // respond or watson work will keep sending the message
   res.status(200).send().end()
@@ -235,34 +289,6 @@ function ignorer (req, res, next) {
   } else {
     next()
   }
-}
-
-var marks = []
-
-function mark (messageId) {
-  logger.verbose(`marking ${messageId} [${marks.length}]`)
-  marks.push(messageId)
-}
-
-/**
- * Checks if a message ID has been read/sent previously from this application
- */
-function marked (messageId) {
-  var p = false
-  for (var i in marks) {
-    if (marks[i] === messageId) {
-      p = true
-      break
-    }
-  }
-
-  if (marks.length > 200) {
-    marks = [] // housekeeping clear the array
-  }
-
-  // console.log(`${messageId} mark=${p}`)
-
-  return p
 }
 
 /**
