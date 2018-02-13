@@ -50,7 +50,7 @@ bot.on('message-annotation-added', (message, annotation) => {
 ## Bot Paths
 The Bot Framework runs on [Express](http://expressjs.com). By creating a bot, several paths will be mounted on Express to handle webhooks and OAuth.
 
-The bot's root path is `/<appId>` where `appId` corresponds to your application's ID you received upon registration with Watson Work Services. For example, https://myapp.mybluemix.net`/1023c56a-6751-4f70-8331-ad1cfc5ee800`. This is also the path that is used for webhooks in the *Listen to Events* page on [Watson Work Services](https://developer.watsonwork.ibm.com/apps).
+The bot's root path is `/<appId>` where `appId` corresponds to your application's ID you received upon registration with Watson Work Services. For example, https://myapp.mybluemix.net`/1023c56a-6751-4f70-8331-ad1cfc5ee800`. The path that is used for webhooks in the *Listen to Events* page on [Watson Work Services](https://developer.watsonwork.ibm.com/apps) is https://myapp.mybluemix.net`/1023c56a-6751-4f70-8331-ad1cfc5ee800/*webhook*.
 
 Two mounts are provided for OAuth: `/<appId>/oauth` and `/<appId>/callback`. These respectively handle triggering the OAuth flow and the resulting callback from Watson Work Services. To utilize OAuth, you must update the *Run as a User* page from your app on [Watson Work Services](https://developer.watsonwork.ibm.com/apps) page. An example *OAuth2 redirect URI* is `https://myapp.mybluemix.net/1023c56a-6751-4f70-8331-ad1cfc5ee800/callback`. To trigger the OAuth flow, redirect the user's browser to `https://myapp.mybluemix.net/1023c56a-6751-4f70-8331-ad1cfc5ee800/oauth`.
 
