@@ -1,11 +1,11 @@
 {
   "name": "watsonworkspace-bot",
-  "version": "1.0.5",
+  "version": "2.0.0",
   "description": "An unofficial IBM Watson Workspace bot kit",
   "scripts": {
     "start": "node index.js",
-    "test": "jasmine",
-    "dev": "concurrently \"node ngrok.js\" \"nodemon ./index.js\""
+    "test": "concurrently \"node ./node_modules/watsonworkspace-ngrok/index.js\" \"jasmine\"",
+    "dev": "concurrently \"node ./node_modules/watsonworkspace-ngrok/index.js\" \"nodemon --debug ./index.js\""
   },
   "keywords": [
     "watsonworkspace",
@@ -34,7 +34,7 @@
   "devDependencies": {
     "concurrently": "^3.5.0",
     "jasmine": "^2.8.0",
-    "ngrok": "^2.2.23",
-    "nodemon": "^1.12.1"
+    "nodemon": "^1.12.1",
+    "watsonworkspace-ngrok": "^1.0.0"
   }
 }
