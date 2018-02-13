@@ -1,6 +1,10 @@
+const fs = require('fs')
+
 describe('workspace-bot', () => {
   // set a much longer timeout to allow interaction with Workspace UI
   jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000
+
+  require('dotenv').config()
 
   // space/conversation ID for testing; ensure you've added the app to a space
   const spaceId = process.env.SPEC_SPACE_ID
@@ -12,10 +16,16 @@ describe('workspace-bot', () => {
   const defaultBot = botFramework.create()
 
   // a bot where the user or program explictly creates a bot
+  const customMiddleware = [
+    ['helloworld'], [function(req, res) { res.send('Hello World!')}]
+  ]
+
   const bot = botFramework.create(
     process.env.APP_ID,
     process.env.APP_SECRET,
-    process.env.WEBHOOK_SECRET
+    process.env.WEBHOOK_SECRET,
+    customMiddleware[0],
+    customMiddleware[1]
   )
 
   it('precheck', () => {
@@ -36,26 +46,17 @@ describe('workspace-bot', () => {
   })
 
   it('startServer', done => {
-    // this spec expects the developer to enable the webhook to proceed
-    console.log(`Re-enable the webhook at 'https://developer.watsonwork.ibm.com/apps/dashboard/webhooks'`)
+    // start the framework with HTTP only
+    // const server = botFramework.startServer()
 
-    bot.on('verify', () => {
-      console.log(`Webhook verified`)
-      done()
+    // start the framework with HTTPS
+    const server = botFramework.startServer({
+      key: fs.readFileSync(`${__dirname}/key.pem`),
+      cert: fs.readFileSync(`${__dirname}/cert.pem`)
     })
 
-    botFramework.startServer()
-  })
-
-  it('webhook-message-created', done => {
-    bot.sendMessage(spaceId, 'Type any message into Workspace')
-
-    // receives the message the user types
-    bot.on('message-created', message => {
-      expect(message).not.toBe(null)
-
-      bot.sendMessage(spaceId, `Received '${message.content}'`)
-      .finally(messge => done())
+    server.on('listening', () => {
+      done()
     })
   })
 })
