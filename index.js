@@ -25,10 +25,6 @@ const oauth2 = require('simple-oauth2')
 // set up express
 var app = express()
 
-// mount a root path to handle heartbeats from PaaS
-// this can be overridden by re-mounting to the / path; see create function
-app.use('/', end)
-
 // IBM Cloud uses hostname and port; do not change case or Express won't bind properly
 const hostname = process.env.HOSTNAME || process.env.hostname || '0.0.0.0'
 const port = process.env.PORT || process.env.port || 3000
