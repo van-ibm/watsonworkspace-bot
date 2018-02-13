@@ -1,5 +1,9 @@
 'use strict'
 
+/**
+ * Watson Work Services Bot Framework
+ * @module watsonworkspace-bot
+ */
 require('dotenv').config()
 
 const Bot = require('./bot')
@@ -21,6 +25,10 @@ const oauth2 = require('simple-oauth2')
 // set up express
 var app = express()
 
+// mount a root path to handle heartbeats from PaaS
+// this can be overridden by re-mounting to the / path; see create function
+app.use('/', end)
+
 // IBM Cloud uses hostname and port; do not change case or Express won't bind properly
 const hostname = process.env.HOSTNAME || process.env.hostname || '0.0.0.0'
 const port = process.env.PORT || process.env.port || 3000
@@ -29,18 +37,24 @@ const port = process.env.PORT || process.env.port || 3000
 
 /**
  * Creates an Express server to host bots.
- * @param {Application} [express] Express server is already available (e.g. Node-RED) 
+ * @param {Application} [express] Express server if already available (e.g. Node-RED) 
  */
 module.exports = (express) => {
   app = express
 }
 
 /**
+ * Exports the Express server.
+ */
+module.exports.express = app
+
+/**
  * Creates and mounts a bot to the Express server.
  * 
  * The bot's root path is /<appId> where appId corresponds to your application's ID.
  * For example, https://myapp.mybluemix.net`/1023c56a-6751-4f70-8331-ad1cfc5ee800`. 
- * This is also the path that is used for webhooks in the Listen to Events page on Watson Work Services.
+ * Webhooks in the Listen to Events page on Watson Work Services should point to use the /webhook route.
+ * For example, https://myapp.mybluemix.net`/1023c56a-6751-4f70-8331-ad1cfc5ee800/webhook`.
  * Two mounts are provided for OAuth: /<appId>/oauth and /<appId>/callback. 
  * These respectively handle triggering the OAuth flow and the resulting callback from Watson Work Services. 
  * To utilize OAuth, you must update the Run as a User page from your app on Watson Work Services page. 
@@ -51,9 +65,11 @@ module.exports = (express) => {
  * @param {string} appId The bot's app ID from Watson Work Services
  * @param {string} appSecret The bot's app secret from Watson Work Services
  * @param {string} webhookSecret The bot's webhook secret from Watson Work Services
+ * @param {string[]} routes Custom routes e.g. 'completed'
+ * @param {function[]} middleware Associated middleware to custom routes; follows (req, res) Express middleware
  * @returns {Bot} The bot instance
  */
-module.exports.create = (appId, appSecret, webhookSecret) => {
+module.exports.create = (appId, appSecret, webhookSecret, routes, middleware) => {
   // if undefined, assume the bot's info is in the runtime properties
   if (appId === undefined) {
     appId = process.env.APP_ID
@@ -73,14 +89,28 @@ module.exports.create = (appId, appSecret, webhookSecret) => {
   app.use(path, bodyParser.json({limit: '5mb'}))
   app.use(path, methodOverride())
 
-  // watson work services specifc middleware
-  app.use(path, verifier)
-  app.use(path, ignorer)
-  app.use(path, webhook)
+  // watson work services specific middleware
+  const defaultHook = '/webhook'
+  logger.info(`Mounting ${defaultHook} middleware`)
+  app.use(`${path}${defaultHook}`, verifier)
+  app.use(`${path}${defaultHook}`, ignorer)
+  app.use(`${path}${defaultHook}`, webhook)
+
+  logger.info(`Mounting /oauth and /callback middleware`)
   app.use(`${path}/oauth`, oauth)
   app.use(`${path}/callback`, oauthCallback)
-  app.use(path, end)  // should always be last
 
+  // custom middleware added by bot developers
+  if(routes && middleware) {
+    if(routes.length !== middleware.length) {
+      logger.warn(`Number of routes do not match middleware! Skipping custom middleware.`)
+    } else {
+      routes.forEach((route, i) => {
+        logger.info(`Mounting /${route} middleware`)
+        app.use(`${path}/${route}`, middleware[i])
+      })
+    }
+  }  
   // create the bot
   const botInstance = new Bot(appId, appSecret, webhookSecret)
 
@@ -113,12 +143,13 @@ module.exports.level = level => {
  * { key: fs.readFileSync('key.pem'), cert: fs.readFileSync('cert.pem') }
  * 
  * @param {Object} [options] SSL options if applicable
+ * @returns {Server} The node HTTP server
  */
 module.exports.startServer = (options) => {
   const ssl = options && options.key && options.cert
   const server = ssl ? https.createServer(options, app) : http.createServer(app)
 
-  server.listen(port, hostname, () => {
+  return server.listen(port, hostname, () => {
     logger.info(`watsonworkspace-bot framework listening on port ${port} using ssl ${ssl !== undefined}`)
   })
 }
@@ -310,5 +341,5 @@ function webhook (req, res, next) {
       // }
   }
 
-  next()
+  end(req, res)
 }
