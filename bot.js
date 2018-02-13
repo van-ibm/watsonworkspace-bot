@@ -11,6 +11,8 @@ const userRegistry = {
  * Adds additional behavior to the SDK specific to chatbot use cases.
  * Most importantly, this is broadcasting webhook events or acting
  * on behalf of users.
+ * @extends SDK
+ * @class
  */
 module.exports = class Bot extends SDK {
   constructor (appId, appSecret, webhookSecret) {
@@ -27,6 +29,7 @@ module.exports = class Bot extends SDK {
   addUser (userId, token) {
     // no authentications because we already have a valid token
     userRegistry[userId] = new SDK('', '', token)
+    this.emitOAuth(userId)
   }
 
   /**
@@ -36,6 +39,13 @@ module.exports = class Bot extends SDK {
    */
   asUser (userId) {
     return userRegistry[userId]
+  }
+
+  /**
+   * Emits the oauth webhook event after a successful callback and user is added to registry.
+   */
+  emitOAuth (userId) {
+    this.emit('oauth', userId)
   }
 
   /**
