@@ -213,13 +213,21 @@ function end (req, res) {
 }
 
 /**
+ * Gets an OAuth URI using either the hostname:port of the process.
+ * If you are testing locally, set OAUTH_REDIRECT_URI to the endpoint of your choice.
+ */
+function oauthUri() {
+  return process.env.OAUTH_REDIRECT_URI || `${hostname}:${port}`
+}
+
+/**
  * Middleware function to handle OAuth invocation
  */
 function oauth (req, res) {
   const bot = getBot(req)
 
   const authorizationUri = bot.oauth.authorizationCode.authorizeURL({
-    redirect_uri: `https://${hostname}:${port}/${bot.appId}/callback`,
+    redirect_uri: `https://${oauthUri()}/${bot.appId}/callback`,
     state: nonce()
   })
 
@@ -236,7 +244,7 @@ function oauthCallback (req, res) {
 
   const tokenConfig = {
     code: req.query.code,
-    redirect_uri: `https://${hostname}:${port}/${bot.appId}/callback`
+    redirect_uri: `https://${oauthUri()}/${bot.appId}/callback`
   }
 
   bot.oauth.authorizationCode.getToken(tokenConfig,
