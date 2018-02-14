@@ -1,6 +1,6 @@
 {
   "name": "watsonworkspace-bot",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "An unofficial IBM Watson Workspace bot kit",
   "scripts": {
     "start": "node index.js",
