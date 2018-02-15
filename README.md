@@ -64,7 +64,7 @@ bot.asUser('<userId>').addMember(spaceId, memberId)
 ```
 
 ## HTTPS
-To utilize OAuth during local development, you must start the Bot Framework using HTTPS.
+To utilize SSL during local development, you can start the Bot Framework using HTTPS.
 
 ```javascript
 const fs = require('fs')
@@ -82,6 +82,10 @@ openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out cert.pe
 ```
 
 On a production server such as Bluemix (IBM Cloud), you can simply use the `botFramework.startServer()` function.  HTTPS will be handled by the web layer of Bluemix.
+
+*Note* It is possible to not start the framework with HTTPS and still use SSL-related features like OAuth. 
+To do that, see a project like [watsonworkspace-starter](https://github.com/van-ibm/watsonworkspace-starter). It uses ngrok to provide a public, hosted SSL endpoint, which is required when registering your app in Watson Work Services. 
+The ngrok tunnel then communicates locally to the bot framework running over standard HTTP.
 
 ## Local Development
 ### nodemon
