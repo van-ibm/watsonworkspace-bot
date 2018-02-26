@@ -10,7 +10,7 @@ bot.on('message-focus:ActionRequest:Schedule', (body, annotation) => {
 })
 ```
 
-Chatbot setup and event listening (webhooks) are handled by the bot framework. Developers choose which events and at what level to listen. In the code above, a developer could listen for the `message-focus` or `message-focus:ActionRequest` or `message-focus:ActionRequest:Schedule` event. For more information on the available events, see the Annotations, Focus, and Action Fulfillment [documentation](https://workspace.ibm.com/developer/docs).
+Chatbot setup and event listening (webhooks) are handled by the bot framework. Developers choose which events and at what level to listen. In the code above, a developer could listen for the `message-focus` or `message-focus:ActionRequest` or `message-focus:ActionRequest:Schedule` event. For more information on the available events, see the Annotations, Focus, and Action Fulfillment [documentation](https://developer.watsonwork.ibm.com/docs).
 
 The following are a few combinations.
 ```javascript
@@ -124,6 +124,6 @@ Use 'https://cdf9d82f.ngrok.io/a7cfbdac-cdab-3d6f-ae13-0654b6b8e880' as your web
 
 When moving your chatbot into production, you will need to edit your Webhook URL.
 
-1. Re-visit the [Listen to events](https://workspace.ibm.com/developer/apps/dashboard/webhooks) page.
+1. Re-visit the [Listen to events](https://developer.watsonwork.ibm.com/apps/dashboard/webhooks) page.
 2. Select the more icon (three vertical dots) and then `Edit`.
 3. Update your Webhook URL to the productions server.
