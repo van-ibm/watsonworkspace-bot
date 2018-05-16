@@ -129,6 +129,12 @@ module.exports.level = level => {
 }
 
 /**
+ * Expose the UI function of the sdk, so the developer doesn't need to 
+ * require the sdk package in order to get this feature.
+ */
+module.exports.UI = SDK.UI;
+
+/**
  * Starts the Express server. By default, the server will listen on HTTP.
  * 
  * The hostname and port are inferred from process.env.
