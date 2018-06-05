@@ -63,6 +63,17 @@ To use the token and act on behalf of the user, a bot can utilize the `asUser` f
 bot.asUser('<userId>').addMember(spaceId, memberId)
 ```
 
+Once the framework authenticates the user, it will need to redirect the browser back to your application.
+To do this, create an environment variable called `OAUTH_SUCCESS_PAGE`, with a value of a valid URI to your application.  For example:
+```
+OAUTH_SUCCESS_PAGE=/oauthSuccess
+```
+
+For testing locally, create an environment variable called `OAUTH_REDIRECT_URI` which points to the hostname of your application.  For example, if you are using ngrok:
+```
+OAUTH_REDIRECT_URI=bd205ce9.ngrok.io
+```
+
 ## HTTPS
 To utilize SSL during local development, you can start the Bot Framework using HTTPS.
 

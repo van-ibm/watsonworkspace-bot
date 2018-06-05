@@ -266,13 +266,10 @@ function oauthCallback (req, res) {
 
         // TODO Need to handle refresh of tokens
 
-        res.send(`
-          <p>${accessToken.token.displayName}</p>
-          <p>${accessToken.token.id}</p>
-          <p>Valid until ${accessToken.token.expires_at}</p>
-          <p>${accessToken.token.access_token}</p>
-          <p>${accessToken.token.scope}</p>
-        `).end()
+        const success_page = process.env.OAUTH_SUCCESS_PAGE ? 
+          process.env.OAUTH_SUCCESS_PAGE : '/';
+        res.redirect(`${success_page}?userId=${accessToken.token.id}&displayName=${accessToken.token.displayName}`);
+
       }
     })
 }
